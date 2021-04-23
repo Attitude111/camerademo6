@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="margin_tiny">4dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">32dp</dimen>
+    <dimen name="margin_huge">64dp</dimen>
+    <dimen name="focus_view_out_size">90dp</dimen>
+    <dimen name="focus_view_inner_size">10dp</dimen>
+    <dimen name="thumbnail_size">40dp</dimen>
+</resources>

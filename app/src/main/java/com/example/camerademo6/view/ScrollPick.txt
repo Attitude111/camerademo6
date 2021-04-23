@@ -1,0 +1,57 @@
+Android事件分发机制:https://blog.csdn.net/guolin_blog/article/details/9097463
+              给按钮注册一个点击事件，只需要调用onClick方法,里面写实现就可以在按钮被点击的时候执行
+              onTouch方法里能做的事情比onClick要多一些，比如判断手指按下、抬起、移动等事件
+              如果两个事件都注册了:onTouch是优先于onClick执行的，
+                                    并且onTouch执行了两次，一次是ACTION_DOWN，一次是ACTION_UP(你还可能会有多次ACTION_MOVE的执行)。
+                                    因此事件传递的顺序是先经过onTouch，再传递到onClick
+              onTouch方法是有返回值的，这里返回的是false，如果把onTouch方法里的返回值改成true.
+              onClick方法不再执行了,先理解成onTouch方法返回true就认为这个事件被onTouch消费掉了，因而不会再继续向下传递
+
+              只要触摸到了任何一个控件，就一定会调用该控件的dispatchTouchEvent方法。
+               当点击按钮的时候，就会去调用Button类里的dispatchTouchEvent方法----->在View里在这个方法内，
+                                                                                  首先是进行了一个判断，
+                                                                                      如果mOnTouchListener != null，//只要我们给控件注册了touch事件，mOnTouchListener就一定被赋值了
+                                                                                      (mViewFlags & ENABLED_MASK) == ENABLED//当前点击的控件是否是enable的，按钮默认都是enable的，因此这个条件恒定为true
+                                                                                      和mOnTouchListener.onTouch(this, event)//回调控件注册touch事件时的onTouch方法。
+                                                                                      这三个条件都为真，就返回true，//也就是说如果我们在onTouch方法里返回true，就会让这三个条件全部成立，从而整个方法直接返回true。
+                                                                                      否则就去执行onTouchEvent(event)方法并返回//如果我们在onTouch方法里返回false，就会再去执行onTouchEvent(event)方法---->onClick的调用在这个里面
+                                                                                                 onTouchEvent方法：如果该控件是可以点击的就会进入到switch判断中去
+                                                                                                                   如果当前的事件是抬起手指，则会进入到MotionEvent.ACTION_UP这个case当中
+                                                                                                                   经过种种判断之后，会执行performClick()方法：，只要mOnClickListener不是null，就会去调用它的onClick方法
+              touch事件的层级传递：如果给一个控件注册了touch事件，
+                                  每次点击它的时候都会触发一系列的ACTION_DOWN，ACTION_MOVE，ACTION_UP等事件。
+                                  这里需要注意，当dispatchTouchEvent在进行事件分发的时候，只有前一个action返回true，才会触发后一个action
+                                               参考着前面分析的源码，
+                                               首先在onTouch事件里返回了false，就一定会进入到onTouchEvent方法中，
+                                                                  onTouchEvent方法的细节：由于点击了按钮，就会进入if判断的内部：不管当前的action是什么，最终都一定返回一个true。
+
+                                               明明在onTouch事件里返回了false，系统还是在onTouchEvent方法中帮你返回了true。就因为这个原因，前面的例子中ACTION_UP可以得到执行
+
+              将按钮替换成ImageView，然后给它也注册一个touch事件，并返回false。
+                            结果：在ACTION_DOWN执行完后，后面的一系列action都不会得到执行了。
+                            原因：ImageView和按钮不同，它是默认不可点击的，因此在onTouchEvent的判断时无法进入到if的内部，直接在onTouchEvent中返回了false，也就导致后面其它的action都无法执行了
+
+onTouch能够得到执行需要两个前提条件，
+第一mOnTouchListener的值不能为空，
+第二当前点击的控件必须是enable的。
+因此如果有一个控件是非enable的，那么给它注册onTouch事件将永远得不到执行。对于这一类控件，如果想要监听它的touch事件，就必须通过在该控件中重写onTouchEvent方法来实现（具体看onTouchEvent代码）
+
+
+-----------------------------------------------------
+当你点击了某个控件，首先会去调用该控件所在布局的dispatchTouchEvent方法，
+然后在布局的dispatchTouchEvent方法中找到被点击的相应控件，再去调用该控件的dispatchTouchEvent方法
+           其中按钮的点击事件得到执行，就会把MyLayout的touch事件拦截掉
+           如果点击的是空白区域呢在第44行，如果target等于null，就会进入到该条件判断内部，这里一般情况下target都会是null，
+             因此会调用super.dispatchTouchEvent(ev)。这句代码会调用到View中的dispatchTouchEvent方法了，因为ViewGroup的父类就是View。
+             之后的处理逻辑又和前面所说的是一样的了，也因此MyLayout中注册的onTouch方法会得到执行
+
+
+
+           1.Android事件分发是先传递到ViewGroup，再由ViewGroup传递到View的。
+           2. 在ViewGroup中可以通过onInterceptTouchEvent方法对事件传递进行拦截，onInterceptTouchEvent方法返回true代表不允许事件继续向子View传递，返回false代表不对事件进行拦截，默认返回false。
+           3. 子View中如果将传递的事件消费掉，ViewGroup中将无法接收到任何事件。
+
+
+
+
+

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".activity.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:padding="10dp">
+        <com.example.camerademo6.view.TwoStateSwitchLayout
+            android:id="@+id/flash_switch"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/drawable_top_click"
+            android:padding="5dp"
+            app:imageOff="@mipmap/flash_off"
+            app:imageOn="@mipmap/flash_on"
+            />
+
+        <com.example.camerademo6.view.TwoStateSwitchLayout
+            android:id="@+id/ratio_switch"
+            android:layout_width="34dp"
+            android:layout_height="20dp"
+            android:layout_marginLeft="30dp"
+            android:background="@drawable/drawable_top_click"
+            android:padding="5dp"
+            app:imageOff="@mipmap/four_three"
+            app:imageOn="@mipmap/sixteen_nine" />
+
+        <ImageView
+            android:id="@+id/settings"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginLeft="30dp"
+            android:background="@drawable/drawable_top_click"
+            android:padding="5dp"
+            android:src="@mipmap/settings" />
+    </LinearLayout>
+
+    <com.example.camerademo6.view.AutoFitTextureView
+        android:id="@+id/preview_texture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="60dp" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="20dp"
+        android:background="@color/just_gray_alpha">
+
+        <com.example.camerademo6.view.HorizontalScrollPickView
+            android:id="@+id/pick_mode_view"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:paddingTop="10dp"/>
+        <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="30dp">
+            <!--缩略图-->
+            <com.example.camerademo6.view.RoundImageView
+                android:id="@+id/iv_goto_gallery"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="30dp"
+                android:padding="1dp" />
+
+            <com.example.camerademo6.view.ShutterButton
+                android:id="@+id/take_picture"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_centerInParent="true"/>
+
+           <!-- 切换前后置-->
+            <ImageView
+                android:id="@+id/change_camera_id"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="40dp"
+                android:background="@drawable/drawable_change_id"
+                android:padding="1dp"
+                />
+
+        </RelativeLayout>
+    </RelativeLayout>
+
+
+</FrameLayout>
