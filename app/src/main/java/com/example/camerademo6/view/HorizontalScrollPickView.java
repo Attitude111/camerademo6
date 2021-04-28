@@ -32,7 +32,7 @@ public class HorizontalScrollPickView extends LinearLayout {
     private int mSelectedIndex = 0;//选中的位置，默认为0
 
     private int mDuration = 320;//动画持续时间
-    private int mTouchSlop;//判定为拖动的最小移动像素数.判断当前用户操作是否是滑动
+    private int mTouchSlop;//系统 滑动距离的最小值，大于该值可以认为滑动
      /*
      记录了用户手指按下时的X坐标位置，以及用户手指在屏幕上拖动时的X坐标位置，
      当两者之间的距离大于TouchSlop值时，就认为用户正在拖动布局，
@@ -55,7 +55,7 @@ public class HorizontalScrollPickView extends LinearLayout {
     private PickAdapter mAdapter;
     private boolean isTouch = false;
 
-    /*适配器addview?**/
+    /*适配器**/
     public void setAdapter(PickAdapter adapter) {
         this.mAdapter = adapter;
         if (this.mAdapter == null) {
@@ -71,9 +71,7 @@ public class HorizontalScrollPickView extends LinearLayout {
     public void setSelectListener(SelectListener selectListener) {
         this.mSelectListener = selectListener;
     }
-    public interface SelectListener {
-        void onSelect(int beforePosition, int position);
-    }
+
 
     public HorizontalScrollPickView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -89,12 +87,12 @@ public class HorizontalScrollPickView extends LinearLayout {
            创建Scroller的实例
            调用startScroll()方法来初始化滚动数据并刷新界面
            重写computeScroll()方法，并在其内部完成平滑滚动的逻辑*/
-        mScroller = new Scroller(context, new DecelerateInterpolator());
+        mScroller = new Scroller(context, new DecelerateInterpolator());//其动画速率开始较快，后面减速
 
 
         setOrientation(LinearLayout.HORIZONTAL);
         final ViewConfiguration configuration = ViewConfiguration.get(mContext);
-        mTouchSlop = configuration.getScaledTouchSlop();//获取移动像素
+        mTouchSlop = configuration.getScaledTouchSlop();//获取touchSlop （系统 滑动距离的最小值，大于该值可以认为滑动）
 
         Point displaySize = new Point();//坐标
         ((Activity) context).getWindowManager().getDefaultDisplay().getSize(displaySize);
@@ -113,11 +111,11 @@ public class HorizontalScrollPickView extends LinearLayout {
             return;
         }
         mLayoutSuccess = true;
-        int childCount = getChildCount();
+        int childCount = getChildCount();//viewgroup中的
         int childLeft;
         int childRight;
         int selectedMode = mSelectedIndex;
-        int widthOffset = 0;
+        int widthOffset = 0;//offset抵消、补偿
         for (int i = 0; i < childCount; i++) {
             View childView = getChildAt(i);
             if (i < selectedMode) {
@@ -160,9 +158,9 @@ public class HorizontalScrollPickView extends LinearLayout {
         switch (action & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:
                 isTouch = true;
-                mLastMotionX = (int) ev.getX();
+                mLastMotionX = (int) ev.getX();//返回这个事件的x坐标 for给定 指针索引
                 mLastMotionY = (int) ev.getY();
-                mActivePointerId = ev.getPointerId(0);
+                mActivePointerId = ev.getPointerId(0);//查找此索引的指针标识符
                 mIsDoAction = false;
                 return !super.dispatchTouchEvent(ev);//返回super.dispatchTouchEvent(ev)的非
             case MotionEvent.ACTION_MOVE:
@@ -177,11 +175,11 @@ public class HorizontalScrollPickView extends LinearLayout {
                 int deltaY = mLastMotionY - y;
                 int absDeltaX = Math.abs(deltaX);
                 int absDeltaY = Math.abs(deltaY);
-                if (!mIsDoAction && absDeltaX > mTouchSlop && absDeltaX > absDeltaY) {
+                if (!mIsDoAction && absDeltaX > mTouchSlop && absDeltaX > absDeltaY) {//判断是否移动
                     mIsDoAction = true;
                     final ViewParent parent = getParent();
                     if (parent != null) {
-                        parent.requestDisallowInterceptTouchEvent(true);
+                        parent.requestDisallowInterceptTouchEvent(true);//不中断
                     }
                     if (deltaX > 0) {
                         moveRight();//向右滑动
@@ -204,16 +202,17 @@ public class HorizontalScrollPickView extends LinearLayout {
     }
 
 
-    //向左滑动
+    //向左滑动：当前选择的下标减一
     public void moveLeft() {
         moveToPoint(mSelectedIndex - 1);
     }
 
-    //向右滑动
+    //向右滑动，当前选择的下标加一
     public void moveRight() {
         moveToPoint(mSelectedIndex + 1);
     }
 
+    /*移动到指定坐标 ，传递参数为指定坐标 */
     private void moveToPoint(int index) {
         if (mAdapter == null) {
             return;
@@ -221,35 +220,36 @@ public class HorizontalScrollPickView extends LinearLayout {
         if (index < 0 || index >= mAdapter.getCount() || index == mSelectedIndex) {
             return;
         }
-        mBeforeIndex = mSelectedIndex;
-        View toView = getChildAt(index);
+        mBeforeIndex = mSelectedIndex;//选中坐标成为上一个坐标
+        View toView = getChildAt(index);//拿到选中view
         int[] screens = new int[2];
-        toView.getLocationOnScreen(screens);
-        int moveSize = Math.round((screens[0] + mWidths[index] / 2.0F) - mHalfScreenSize);
-        if (ApiHelper.getScreenMode(getContext()) == ApiHelper.SCREEN_MODE_FULL) {
+        toView.getLocationOnScreen(screens);//拿到选中view在屏幕中的位置
+        int moveSize = Math.round((screens[0] + mWidths[index] / 2.0F) - mHalfScreenSize);//取整，移动距离. 避免距离移动到一半
+        if (ApiHelper.getScreenMode(getContext()) == ApiHelper.SCREEN_MODE_FULL) {//全屏
             /*
             * 借助Scroller来完成后续的滚动操作。
-            * 先根据当前的滚动位置来计算布局应该继续滚动到哪一个子控件的页面，然后计算出距离该页面还需滚动多少距离。
-            * 接下来调用startScroll()方法来初始化滚动数据并刷新界面。
-            * startScroll()方法第一个参数是滚动开始时X的坐标，第二个参数是滚动开始时Y的坐标，第三个参数是横向滚动的距离，正值表示向左滚动，第四个参数是纵向滚动的距离，正值表示向上滚动。
+            * 调用startScroll()方法来初始化滚动数据并刷新界面。
+            * startScroll()方法第一个参数是滚动开始时X的坐标，第二个参数是滚动开始时Y的坐标，第三个参数是横向滚动的距离，正值表示向左滚动，第四个参数是纵向滚动的距离，正值表示向上滚动。第五个动画持续时间
+            *
+            *
             * 紧接着调用invalidate()方法来刷新界面*/
             mScroller.startScroll(getScrollX(), 0, moveSize, 0, mDuration);
         } else {
-            if (ApiHelper.getScreenActive(getContext()) == ApiHelper.SCREEN_ACTIVE_MAIN) {
+            if (ApiHelper.getScreenActive(getContext()) == ApiHelper.SCREEN_ACTIVE_MAIN) {//主屏
                 mScroller.startScroll(getScrollX(), 0, moveSize, 0, mDuration);
             } else {
                 mScroller.startScroll(getScrollX(), 0, moveSize, 0, mDuration);
             }
         }
 
-        scrollToNext(mBeforeIndex, index);
-        mSelectedIndex = index;
+        scrollToNext(mBeforeIndex, index);//更新view 这里是颜色改变
+        mSelectedIndex = index;//更新当前选中的坐标
         invalidate();
     }
     /*
-    * 适配器设置前一个view
-    * 适配器设置当前view
-    * 监听事件
+    * 更新前一个选中view
+    * 更新当前选中view
+    * 如果有监听 则触发监听事件
     * */
     private void scrollToNext(int lastIndex, int selectIndex) {
         Log.d(TAG, "HorizontalScrollPickView scrollToNext");
@@ -271,17 +271,23 @@ public class HorizontalScrollPickView extends LinearLayout {
     }
 
 
+    /*如果有适配器，使用适配器改变当前view*/
     private void initChildView(View view) {
         if (mAdapter == null || view == null) {
             return;
         }
         mAdapter.initView(view);
     }
+    /*如果有适配器，使用适配器改变当前view为选中view*/
     private void selectView(View view) {
         if (mAdapter == null || view == null) {
             return;
         }
         mAdapter.selectView(view);
+    }
+
+    public interface SelectListener {
+        void onSelect(int beforePosition, int position);
     }
 
     public static abstract class PickAdapter {

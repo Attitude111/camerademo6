@@ -181,8 +181,6 @@ public class CustomView extends View {
     /*2.container自己什么时候被布局
     * 在它布局里，会调用它自己的一个layout()函数(不能被重载，代码位于View.java)，在SetFrame(l,t,r,b)就是设置自己的位置
     * 设置结束以后才会调用onLayout(changed, l, t, r, b)来设置内部所有子控件的位置。
-
-
      * */
 
     /*3.如何得到自定义控件的左右间距margin值

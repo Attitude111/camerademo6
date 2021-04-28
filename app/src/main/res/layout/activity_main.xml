@@ -14,7 +14,17 @@
         android:orientation="horizontal"
         android:padding="10dp">
         <com.example.camerademo6.view.TwoStateSwitchLayout
+            android:id="@+id/time_count"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/drawable_top_click"
+            android:padding="5dp"
+            app:imageOff="@mipmap/time_count_off"
+            app:imageOn="@mipmap/time_count3"
+            />
+        <com.example.camerademo6.view.TwoStateSwitchLayout
             android:id="@+id/flash_switch"
+            android:layout_marginLeft="30dp"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:background="@drawable/drawable_top_click"
@@ -25,8 +35,8 @@
 
         <com.example.camerademo6.view.TwoStateSwitchLayout
             android:id="@+id/ratio_switch"
-            android:layout_width="34dp"
-            android:layout_height="20dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:layout_marginLeft="30dp"
             android:background="@drawable/drawable_top_click"
             android:padding="5dp"
@@ -41,7 +51,9 @@
             android:background="@drawable/drawable_top_click"
             android:padding="5dp"
             android:src="@mipmap/settings" />
+
     </LinearLayout>
+
 
     <com.example.camerademo6.view.AutoFitTextureView
         android:id="@+id/preview_texture"
@@ -50,11 +62,16 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="60dp" />
 
+    <com.example.camerademo6.view.FocusView
+        android:id="@+id/fv_focus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="180dp"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="0dp"
         android:background="@color/just_gray_alpha">
 
         <com.example.camerademo6.view.HorizontalScrollPickView
@@ -99,5 +116,16 @@
         </RelativeLayout>
     </RelativeLayout>
 
+    <TextView
+        android:id="@+id/show_time"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="5dp"
+        android:textColor="@color/white"
+        android:textSize="200sp"
+
+        android:gravity="center"
+
+        />
 
 </FrameLayout>

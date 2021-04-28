@@ -21,17 +21,21 @@ import android.os.Message;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.TextureView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.example.camerademo6.R;
 import com.example.camerademo6.cam.CameraConstant;
 import com.example.camerademo6.cam.CameraController;
+import com.example.camerademo6.utils.DensityUtils;
 import com.example.camerademo6.view.AutoFitTextureView;
+import com.example.camerademo6.view.FocusView;
 import com.example.camerademo6.view.HorizontalScrollPickView;
 import com.example.camerademo6.view.ModuleSwitcherAdapter;
 import com.example.camerademo6.view.RoundImageView;
@@ -44,9 +48,12 @@ import java.lang.ref.WeakReference;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, CameraController.CameraControllerInterFaceCallback, TwoStateSwitchLayout.CustomCheckBoxChangeListener, ShutterButton.OnShutterButtonClickLister{
 
+
     private Handler mHandler;
+    private Handler mTimeHandler;
+    //private int cameratime=3;
     public class MyHandler extends Handler {
-        WeakReference<Activity> mWeakReference;
+        WeakReference<Activity> mWeakReference;//通过弱引用方式引用外部类
 
         public MyHandler(Activity activity) {
             mWeakReference = new WeakReference<Activity>(activity);
@@ -56,15 +63,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void handleMessage(Message msg) {
             final Activity activity = mWeakReference.get();
             if (activity != null) {
-                /*
-                switch (msg.what) {
 
-                case HIDE_FOCUS_VIEW:
-                        mFocusView.setNeedToDrawView(false);
+                switch (msg.what) {
+                    case HIDE_FOCUS_VIEW:
+                        Log.i("handlemessage","处理消息 hide_focus_view");
+                        mFocusView.setNeedToDrawView(false);//设置focusview不需要draw并刷新
+                        tv_time.setVisibility(View.GONE);
+                        break;
+                    case 3:
+                        tv_time.setVisibility(View.VISIBLE);
+                        Log.i("handlemessage","当前消息：3");
+                        tv_time.setText("3");
+                        break;
+                    case 2:
+                        Log.i("handlemessage","当前消息：2");
+                        tv_time.setText("2");
+                        break;
+                    case 1:
+                        Log.i("handlemessage","当前消息：1");
+                        tv_time.setText("1");
+                        break;
+                    case 0:
+                        Log.i("handlemessage","当前消息：0");
+                        tv_time.setVisibility(View.GONE);
+                        //tv_time.setText("");
                         break;
 
                 }
-                */
+
             }
         }
     }
@@ -100,11 +126,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private ShutterButton mTakePicture;
     private ImageView mSetting;
+
     private ImageView mChangeCameraId;
-    //private FocusView mFocusView;
+    private FocusView mFocusView;
     private TwoStateSwitchLayout mFlashSwitch;
     private TwoStateSwitchLayout mRatioSwitch;
     private RoundImageView mGoToGallery;
+   private TwoStateSwitchLayout mTimeCount;
 
 
     private CameraController mCameraController;
@@ -113,6 +141,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int mPhoneOrientation;
     private MyOrientationEventListener mOrientationListener;
     public static final int ORIENTATION_HYSTERESIS = 5;
+    private static final int HIDE_FOCUS_VIEW = 10;//隐藏focusview
+    private static final int Time_COUNT3_BEGIN= 3;//开始计时拍照
 
     private boolean mRecording;
 
@@ -121,11 +151,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void customCheckBoxOn(int flashSwitch) {
         switch (flashSwitch) {
             case R.id.flash_switch:
-                //openFlashMode();
+                openFlashMode();
                 break;
             case R.id.ratio_switch:
-                //changToSixTeenRatioNine();
+                changToSixTeenRatioNine();
                 break;
+            case R.id.time_count:
+                openTimeCount();
         }
     }
 
@@ -133,11 +165,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void customCheckBoxOff(int flashSwitch) {
         switch (flashSwitch) {
             case R.id.flash_switch:
-                //closeFlashMode();
+                closeFlashMode();
                 break;
             case R.id.ratio_switch:
-                //changeToFourRatioThird();
+                changeToFourRatioThird();
                 break;
+            case R.id.time_count:
+                closeTimeCount();
         }
     }
 
@@ -188,6 +222,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    @Override
+    public void onTapFocusFinish() {
+
+        mHandler.removeCallbacksAndMessages(null);
+        mHandler.sendEmptyMessage(HIDE_FOCUS_VIEW);
+    }
+
+
 
 
     @Override
@@ -201,16 +243,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.i("mainactivity_onCreate","initView");
         initView();
         Log.i("mainactivity_onCreate","registerOrientationLister");
-        registerOrientationLister();
+        registerOrientationLister();//注册手机方向的监听：实例化
 
-        //initTextureViewListener(); focus有关
+        initTextureViewListener(); //初始化textureview的监听 focus有关
     }
 
 
+    private TextView tv_time;
     private void initView() {
+
+        tv_time=findViewById(R.id.show_time);
+
 
         mHandler = new MyHandler(this);
 
+        //tv_time=findViewById(R.id.tv_time);
         mPreviewTexture = findViewById(R.id.preview_texture);
         /*
         * 模式选择view的初始化
@@ -228,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 changeMode(position);//根据选择的对应下标更改模式
             }
         });
-        //mPreviewTexture.setAlpha(0.5f);
+        mPreviewTexture.setAlpha(0.5f);
         /*
         * 找到快门view
         * 找到设置view
@@ -240,13 +287,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mTakePicture = findViewById(R.id.take_picture);
         mSetting = findViewById(R.id.settings);
         mChangeCameraId = findViewById(R.id.change_camera_id);
-        //mFocusView = findViewById(R.id.fv_focus);
+        mFocusView = findViewById(R.id.fv_focus);
         mFlashSwitch = findViewById(R.id.flash_switch);
         mRatioSwitch = findViewById(R.id.ratio_switch);
         mGoToGallery = findViewById(R.id.iv_goto_gallery);
 
+        mTimeCount=findViewById(R.id.time_count);
+
         /*
         *OnClickListener
+        * 为倒计时imageview设置监听
         *  为设置view设监听
         * 为前后置前后设监听
         * 为缩略图设监听
@@ -256,12 +306,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         * OnShutterButtonClickListener
         * 为快门实现监听
         */
+
         mSetting.setOnClickListener(this);
         mChangeCameraId.setOnClickListener(this);
         mGoToGallery.setOnClickListener(this);
         mFlashSwitch.setCustomCheckBoxChangeListener(this);
         mRatioSwitch.setCustomCheckBoxChangeListener(this);
         mTakePicture.setOnShutterButtonClickListener(this);
+
+        mTimeCount.setCustomCheckBoxChangeListener(this);
+
 
         /*
         * 为缩略图view设背景---形状
@@ -274,11 +328,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCameraController = new CameraController(this, mPreviewTexture);
         mCameraController.setCameraControllerInterFaceCallback(this);
     }
+    /*
+    * 为预览view注册touch事件
+    *   down-move-up:
+    * up动作：若满足x、y
+    * 设置focusView需要去draw
+    * 传递点击位置设置draw的位置
+    * */
+    private void initTextureViewListener() {
+        mPreviewTexture.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_UP:
+                        int currentY = (int) event.getRawY();
+
+                        int left = mPreviewTexture.getLeft();
+                        int top = mPreviewTexture.getTop();
+
+                        int focusViewWidth = DensityUtils.dip2px(MainActivity.this, FocusView.mOuterRadiusDP);
+
+                        int minDrawY = top + focusViewWidth / 2;
+                        int maxDrawY = top + mPreviewTexture.getHeight() - focusViewWidth / 2;
+                        if (currentY <= minDrawY || currentY >= maxDrawY) return false;
+
+                        int currentX = (int) event.getRawX();
+                        int minDrawX = left + focusViewWidth / 2;
+                        int maxDrawX = left + mPreviewTexture.getWidth() - focusViewWidth / 2;
+
+                        if (currentX <= minDrawX || currentX >= maxDrawX) return false;
+
+                        mFocusView.setNeedToDrawView(true);
+                        mFocusView.setFocusViewCenter(currentX, currentY);
+
+                        mCameraController.updateManualFocus(mCameraController.getFocusRect(currentX, currentY));
+                        mFocusView.playAnimation();
+                        if (mHandler != null) {
+                            mHandler.removeCallbacksAndMessages(null);
+                            mHandler.sendEmptyMessageDelayed(HIDE_FOCUS_VIEW, 3000);
+                        }
+                        break;
+                }
+                return true;
+            }
+        });
+    }
 
     /*
     *CameraController.更新
     * 更新缩略图view
-    *
+    * focusview默认设置不需要去draw
+    *使方向监听可用-->类似注册
     * 自定义预览view可用时调用cameracontroller的opencamera
     * 否则为自定义view设置监听*/
     @Override
@@ -288,12 +388,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCameraController.startBackgroundThread();
         updateThumbnailView();
 
-        /*
         if (mFocusView != null) {
             mFocusView.setNeedToDrawView(false);
         }
-        */
-        initOrientationSensor();//////////用于翻转？？？
+        initOrientationSensor();
         if (mPreviewTexture.isAvailable()) {
             mCameraController.openCamera();
         } else {
@@ -311,16 +409,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCameraController.closeCamera();
         mCameraController.closeMediaRecorder();
         mCameraController.stopBackgroundThread();
-        /*if (mFocusView != null) {
+        if(mFocusView != null){
+            //停止时需要将focusview设置不需要draw
             mFocusView.setNeedToDrawView(false);
         }
-        LogUtils.logD("onPause end");*/
     }
 
     @Override
     protected void onDestroy() {
         if (mHandler != null) {
-            mHandler.removeCallbacksAndMessages(null);
+            mHandler.removeCallbacksAndMessages(null);//Looper线程的消息队列中可能还有待处理的消息，记住要移除消息队列中待处理的消息
         }
         super.onDestroy();
     }
@@ -335,7 +433,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 changeToVideoMode();
                 break;
             case "专业":
-                //changeToProfessorMode();
+                changeToProfessorMode();
                 break;
             case "慢动作":
                 //changeToSlowFpsMode();
@@ -391,6 +489,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCameraController.closeCamera();
         mCameraController.setCurrentMode(mCurrentMode);
         mCameraController.setTargetRatio(CameraConstant.RATIO_SIXTEEN_NINE);
+        mCameraController.openCamera();
+    }
+    /*专业模式
+    * 如果本身是专业模式，do nothing
+    * 当前模式更新为专业模式：mainactivity中的模式值、快门按钮的模式值、cameraController的模式值
+    *此时 设置、快门、比例切换的view可见
+    * 关相机、关mediaRecorder
+    * 设比例
+    * 开相机*/
+    private void changeToProfessorMode() {
+        if (mCurrentMode == CameraConstant.PRO_MODE) return;
+        mCurrentMode = CameraConstant.PRO_MODE;
+        mTakePicture.setCurrentMode(mCurrentMode);
+        mCameraController.setCurrentMode(mCurrentMode);
+
+        mSetting.setVisibility(View.INVISIBLE);
+        mFlashSwitch.setVisibility(View.INVISIBLE);
+        mRatioSwitch.setVisibility(View.INVISIBLE);
+
+
+        mCameraController.closeCamera();
+        mCameraController.closeMediaRecorder();
+
+        mCameraController.setTargetRatio(CameraConstant.RATIO_FOUR_THREE);
         mCameraController.openCamera();
     }
 
@@ -456,7 +578,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mCameraController.setPhotoPath(mFile);//设置相片保存路径
         mCameraController.prepareCaptureStillPicture();//////////////////////？？？拍照
         mTakePicture.startPictureAnimator();
-        mTakePicture.setEnabled(false);//使按钮不可点击 在ACTION_DOWN执行完后，后面的一系列action都不会得到执行了
+        mTakePicture.setEnabled(false);//使按钮不可点击           在ACTION_DOWN执行完后，后面的一系列action都不会得到执行了
     }
 
     /*快门监听：录像
@@ -509,6 +631,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         intent.setDataAndType(uri, "image/jpeg");
         startActivity(intent);
     }
+
     /*跳到设置activity*/
     private void goToSettingsActivity() {
         Intent intent = new Intent(this, SettingsActivity.class);
@@ -533,11 +656,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         * */
         ObjectAnimator animator = ObjectAnimator.ofFloat(mChangeCameraId, "rotation", 0, 180, 0);
         //第一个参数用于指定这个动画要操作的是哪个控件：前后置切换的imageview 第二个参数用于指定这个动画要操作这个控件的哪个属性：旋转 第三个参数是可变长参数，这个就跟ValueAnimator中的可变长参数的意义一样了，就是指这个属性值是从哪变到哪
+
         animator.setDuration(500);
         animator.start();
     }
 
+   /*闪光灯开关*/
+    private void openFlashMode() {
+        mCameraController.openFlashMode();
+    }
 
+    private void closeFlashMode() {
+        mCameraController.closeFlashMode();
+    }
+    /*切换比例*/
+    public void changeToFourRatioThird() {
+        mCameraController.changeToFourRatioThird();
+    }
+
+    public void changToSixTeenRatioNine() {
+        mCameraController.changToSixTeenRatioNine();
+    }
+
+    /*点击拍照计时*/
+    public void openTimeCount(){
+
+        mCameraController.setCounting(true,mHandler);
+    }
+    public void closeTimeCount(){
+        mCameraController.setCounting(false,mHandler);
+    }
+
+    /*计时开关---3秒*/
+    private int time=3;
+    /*打开计时：倒计时显示*/
+
+
+
+/*方向监听*/
     private class MyOrientationEventListener
             extends OrientationEventListener {
         public MyOrientationEventListener(Context context) {
@@ -549,13 +705,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (orientation == ORIENTATION_UNKNOWN) {
                 return;
             }
-            mPhoneOrientation = roundOrientation(orientation, mPhoneOrientation);
+            mPhoneOrientation = roundOrientation(orientation, mPhoneOrientation);//手机真正方向
 
-            mCameraController.setPhoneDeviceDegree(mPhoneOrientation);
+            mCameraController.setPhoneDeviceDegree(mPhoneOrientation);//设置拍摄图片方向
         }
     }
 
-    public int roundOrientation(int orientation, int orientationHistory) {
+    public int roundOrientation(int orientation, int orientationHistory) {//手机真正方向（0,90,180,270）这几种方向的一种
         boolean changeOrientation = false;
         if (orientationHistory == OrientationEventListener.ORIENTATION_UNKNOWN) {
             changeOrientation = true;
@@ -569,8 +725,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         return orientationHistory;
     }
+
     private void registerOrientationLister() {
-        mOrientationListener = new MyOrientationEventListener(this);//方向旋转监听
+        mOrientationListener = new MyOrientationEventListener(this);//方向监听
     }
 
     private void initOrientationSensor() {
